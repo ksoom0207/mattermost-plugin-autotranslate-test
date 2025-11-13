@@ -140,3 +140,26 @@ func (p *Plugin) emitUserInfoChange(userInfo *UserInfo) {
 		&model.WebsocketBroadcast{UserId: userInfo.UserID},
 	)
 }
+
+// getTranslationProvider creates and returns the appropriate translation provider based on configuration
+func (p *Plugin) getTranslationProvider() (TranslationProvider, error) {
+	configuration := p.getConfiguration()
+
+	switch configuration.Provider {
+	case "vllm":
+		return NewVLLMProvider(
+			configuration.VLLMApiURL,
+			configuration.VLLMApiKey,
+			configuration.VLLMModel,
+		), nil
+	case "aws", "":
+		// Default to AWS if not specified
+		return NewAWSTranslateProvider(
+			configuration.AWSAccessKeyID,
+			configuration.AWSSecretAccessKey,
+			configuration.AWSRegion,
+		), nil
+	default:
+		return nil, fmt.Errorf("unsupported translation provider: %s", configuration.Provider)
+	}
+}

@@ -7,11 +7,6 @@ import (
 	"strconv"
 
 	"github.com/mattermost/mattermost-server/v5/plugin"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/translate"
 )
 
 // APIErrorResponse as standard response error
@@ -77,26 +72,17 @@ func (p *Plugin) getGo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	configuration := p.getConfiguration()
-	sess := session.Must(session.NewSession())
-	creds := credentials.NewStaticCredentials(configuration.AWSAccessKeyID, configuration.AWSSecretAccessKey, "")
-	_, awsErr := creds.Get()
-	if awsErr != nil {
-		http.Error(w, "Bad credentials", http.StatusForbidden)
+	// Get the configured translation provider
+	provider, err := p.getTranslationProvider()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to initialize translation provider: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
-	svc := translate.New(sess, aws.NewConfig().WithCredentials(creds).WithRegion(configuration.AWSRegion))
-
-	input := translate.TextInput{
-		SourceLanguageCode: &source,
-		TargetLanguageCode: &target,
-		Text:               &post.Message,
-	}
-
-	output, awsErr := svc.Text(&input)
-	if awsErr != nil {
-		http.Error(w, awsErr.Error(), http.StatusBadRequest)
+	// Perform translation using the provider
+	translatedText, err := provider.Translate(post.Message, source, target)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Translation failed: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -106,7 +92,7 @@ func (p *Plugin) getGo(w http.ResponseWriter, r *http.Request) {
 		SourceLanguage: source,
 		SourceText:     post.Message,
 		TargetLanguage: target,
-		TranslatedText: *output.TranslatedText,
+		TranslatedText: translatedText,
 		UpdateAt:       post.UpdateAt,
 	}
 

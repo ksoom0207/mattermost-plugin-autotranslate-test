@@ -15,6 +15,9 @@ import (
 // strategy used in this plugin is to guard a pointer to the configuration, and clone the entire
 // struct whenever it changes. You may replace this with whatever strategy you choose.
 type configuration struct {
+	// Translation provider: "aws" or "vllm"
+	Provider string
+
 	// AWS access key
 	AWSAccessKeyID string
 
@@ -24,6 +27,15 @@ type configuration struct {
 	// AWS region with "us-east-1" as default
 	AWSRegion string
 
+	// vLLM API URL (e.g., http://localhost:8000/v1/completions)
+	VLLMApiURL string
+
+	// vLLM API Key (optional, for authenticated endpoints)
+	VLLMApiKey string
+
+	// vLLM Model name
+	VLLMModel string
+
 	// disable plugin
 	disabled bool
 }
@@ -32,9 +44,13 @@ type configuration struct {
 // your configuration has no reference types.
 func (c *configuration) Clone() *configuration {
 	return &configuration{
+		Provider:           c.Provider,
 		AWSAccessKeyID:     c.AWSAccessKeyID,
 		AWSSecretAccessKey: c.AWSSecretAccessKey,
 		AWSRegion:          c.AWSRegion,
+		VLLMApiURL:         c.VLLMApiURL,
+		VLLMApiKey:         c.VLLMApiKey,
+		VLLMModel:          c.VLLMModel,
 		disabled:           c.disabled,
 	}
 }
@@ -98,16 +114,33 @@ func (p *Plugin) setEnabled(enabled bool) {
 // IsValid validates plugin configuration
 func (p *Plugin) IsValid() error {
 	configuration := p.getConfiguration()
-	if configuration.AWSAccessKeyID == "" {
-		return fmt.Errorf("Must have AWS Access Key ID")
+
+	// Default to AWS if no provider is specified
+	if configuration.Provider == "" {
+		configuration.Provider = "aws"
 	}
 
-	if configuration.AWSSecretAccessKey == "" {
-		return fmt.Errorf("Must have AWS Secret Access Key")
-	}
-
-	if configuration.AWSRegion == "" {
-		configuration.AWSRegion = "us-east-1"
+	// Validate based on selected provider
+	switch configuration.Provider {
+	case "aws":
+		if configuration.AWSAccessKeyID == "" {
+			return fmt.Errorf("Must have AWS Access Key ID")
+		}
+		if configuration.AWSSecretAccessKey == "" {
+			return fmt.Errorf("Must have AWS Secret Access Key")
+		}
+		if configuration.AWSRegion == "" {
+			configuration.AWSRegion = "us-east-1"
+		}
+	case "vllm":
+		if configuration.VLLMApiURL == "" {
+			return fmt.Errorf("Must have vLLM API URL")
+		}
+		if configuration.VLLMModel == "" {
+			return fmt.Errorf("Must have vLLM Model name")
+		}
+	default:
+		return fmt.Errorf("Invalid provider: must be 'aws' or 'vllm'")
 	}
 
 	return nil

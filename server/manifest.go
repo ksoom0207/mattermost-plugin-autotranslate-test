@@ -36,10 +36,28 @@ const manifestStr = `
     "footer": "",
     "settings": [
       {
+        "key": "Provider",
+        "display_name": "Translation Provider:",
+        "type": "dropdown",
+        "help_text": "Select the translation service provider.",
+        "placeholder": "",
+        "default": "aws",
+        "options": [
+          {
+            "display_name": "AWS Translate",
+            "value": "aws"
+          },
+          {
+            "display_name": "vLLM",
+            "value": "vllm"
+          }
+        ]
+      },
+      {
         "key": "AWSAccessKeyID",
         "display_name": "AWS Access Key ID:",
         "type": "text",
-        "help_text": "The access key ID from AWS.",
+        "help_text": "The access key ID from AWS. (Required for AWS provider)",
         "placeholder": "",
         "default": null
       },
@@ -47,7 +65,7 @@ const manifestStr = `
         "key": "AWSSecretAccessKey",
         "display_name": "AWS Secret Access Key:",
         "type": "text",
-        "help_text": "The secret access key from AWS.",
+        "help_text": "The secret access key from AWS. (Required for AWS provider)",
         "placeholder": "",
         "default": null
       },
@@ -55,9 +73,33 @@ const manifestStr = `
         "key": "AWSRegion",
         "display_name": "AWS Region:",
         "type": "text",
-        "help_text": "The region from AWS.",
+        "help_text": "The region from AWS. (Required for AWS provider)",
         "placeholder": "",
         "default": "us-east-1"
+      },
+      {
+        "key": "VLLMApiURL",
+        "display_name": "vLLM API URL:",
+        "type": "text",
+        "help_text": "The vLLM API endpoint URL (e.g., http://localhost:8000/v1/completions). (Required for vLLM provider)",
+        "placeholder": "http://localhost:8000/v1/completions",
+        "default": null
+      },
+      {
+        "key": "VLLMApiKey",
+        "display_name": "vLLM API Key:",
+        "type": "text",
+        "help_text": "The API key for vLLM endpoint (optional, leave empty if not required).",
+        "placeholder": "Optional",
+        "default": null
+      },
+      {
+        "key": "VLLMModel",
+        "display_name": "vLLM Model:",
+        "type": "text",
+        "help_text": "The model name to use for translation (e.g., meta-llama/Llama-2-7b-chat-hf). (Required for vLLM provider)",
+        "placeholder": "meta-llama/Llama-2-7b-chat-hf",
+        "default": null
       }
     ]
   }
