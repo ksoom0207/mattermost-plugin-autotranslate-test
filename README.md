@@ -45,3 +45,50 @@ Use `make dist` to build distributions of the plugin that you can upload to a Ma
 Use `make check-style` to check the style.
 
 Use `make localdeploy` to deploy the plugin to your local server. You will need to restart the server to get the changes.
+
+
+------
+
+
+------
+3. 자동 번역 기능 구현 ✅
+
+기존 동작:
+버튼 클릭 → 번역 결과 표시
+새로운 동작:
+/autotranslate on 활성화
+메시지 전송 → 자동으로 번역된 메시지가 스레드 답글로 표시
+구현 상세:
+MessageHasBeenPosted hook으로 메시지 캡처
+봇 메시지 필터링 (무한 루프 방지)
+사용자의 활성화 상태 확인
+번역된 메시지를 스레드 답글로 포스트
+UX 예시:
+수민: 안녕하세요
+  └─ autotranslate-bot: [ko → en]
+     Hello
+설정 구조
+Provider 옵션 (3가지):
+1. AWS Translate (기본값)
+
+Provider: aws
+AWS Access Key ID: [your-key]
+AWS Secret Access Key: [your-secret]
+AWS Region: us-east-1
+2. vLLM
+
+Provider: vllm
+vLLM API URL: http://your-server:8000/v1/completions
+vLLM API Key: [optional]
+vLLM Model: meta-llama/Llama-2-7b-chat-hf
+3. LiteLLM (새로 추가!)
+
+Provider: litellm
+LiteLLM API URL: http://localhost:4000/chat/completions
+LiteLLM API Key: [optional]
+LiteLLM Model: gpt-4 (or claude-2, etc.)
+봇 설정:
+Bot Username: autotranslate-bot (기본값)
+Bot Display Name: Auto Translate Bot
+Bot Icon URL: [optional]
+
