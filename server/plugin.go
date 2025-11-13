@@ -152,6 +152,12 @@ func (p *Plugin) getTranslationProvider() (TranslationProvider, error) {
 			configuration.VLLMApiKey,
 			configuration.VLLMModel,
 		), nil
+	case "litellm":
+		return NewLiteLLMProvider(
+			configuration.LiteLLMApiURL,
+			configuration.LiteLLMApiKey,
+			configuration.LiteLLMModel,
+		), nil
 	case "aws", "":
 		// Default to AWS if not specified
 		return NewAWSTranslateProvider(

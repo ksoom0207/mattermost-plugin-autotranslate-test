@@ -36,6 +36,24 @@ type configuration struct {
 	// vLLM Model name
 	VLLMModel string
 
+	// LiteLLM API URL (e.g., http://localhost:4000/chat/completions)
+	LiteLLMApiURL string
+
+	// LiteLLM API Key (optional, for authenticated endpoints)
+	LiteLLMApiKey string
+
+	// LiteLLM Model name
+	LiteLLMModel string
+
+	// Bot username for auto-translation posts
+	BotUsername string
+
+	// Bot display name
+	BotDisplayName string
+
+	// Bot icon URL
+	BotIconURL string
+
 	// disable plugin
 	disabled bool
 }
@@ -51,6 +69,12 @@ func (c *configuration) Clone() *configuration {
 		VLLMApiURL:         c.VLLMApiURL,
 		VLLMApiKey:         c.VLLMApiKey,
 		VLLMModel:          c.VLLMModel,
+		LiteLLMApiURL:      c.LiteLLMApiURL,
+		LiteLLMApiKey:      c.LiteLLMApiKey,
+		LiteLLMModel:       c.LiteLLMModel,
+		BotUsername:        c.BotUsername,
+		BotDisplayName:     c.BotDisplayName,
+		BotIconURL:         c.BotIconURL,
 		disabled:           c.disabled,
 	}
 }
@@ -139,8 +163,15 @@ func (p *Plugin) IsValid() error {
 		if configuration.VLLMModel == "" {
 			return fmt.Errorf("Must have vLLM Model name")
 		}
+	case "litellm":
+		if configuration.LiteLLMApiURL == "" {
+			return fmt.Errorf("Must have LiteLLM API URL")
+		}
+		if configuration.LiteLLMModel == "" {
+			return fmt.Errorf("Must have LiteLLM Model name")
+		}
 	default:
-		return fmt.Errorf("Invalid provider: must be 'aws' or 'vllm'")
+		return fmt.Errorf("Invalid provider: must be 'aws', 'vllm', or 'litellm'")
 	}
 
 	return nil

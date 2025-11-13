@@ -170,6 +170,125 @@ func (p *VLLMProvider) createTranslationPrompt(text, sourceLang, targetLang stri
 	return fmt.Sprintf("Translate the following text from %s to %s. Only provide the translation, nothing else.\n\nText: %s\n\nTranslation:", sourceLanguageName, targetLanguageName, text)
 }
 
+// LiteLLMProvider implements TranslationProvider for LiteLLM (OpenAI-compatible API)
+type LiteLLMProvider struct {
+	apiURL string
+	apiKey string
+	model  string
+}
+
+// NewLiteLLMProvider creates a new LiteLLM provider
+func NewLiteLLMProvider(apiURL, apiKey, model string) *LiteLLMProvider {
+	return &LiteLLMProvider{
+		apiURL: apiURL,
+		apiKey: apiKey,
+		model:  model,
+	}
+}
+
+// GetName returns the provider name
+func (p *LiteLLMProvider) GetName() string {
+	return "litellm"
+}
+
+// LiteLLMChatRequest represents the chat completion request for LiteLLM
+type LiteLLMChatRequest struct {
+	Model       string               `json:"model"`
+	Messages    []LiteLLMChatMessage `json:"messages"`
+	Temperature float64              `json:"temperature,omitempty"`
+	MaxTokens   int                  `json:"max_tokens,omitempty"`
+}
+
+// LiteLLMChatMessage represents a chat message
+type LiteLLMChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+// LiteLLMChatResponse represents the response from LiteLLM
+type LiteLLMChatResponse struct {
+	Choices []struct {
+		Message LiteLLMChatMessage `json:"message"`
+	} `json:"choices"`
+}
+
+// Translate translates text using LiteLLM API
+func (p *LiteLLMProvider) Translate(text, sourceLang, targetLang string) (string, error) {
+	// Create translation prompt
+	prompt := createTranslationPromptForChat(text, sourceLang, targetLang)
+
+	// Prepare request
+	reqBody := LiteLLMChatRequest{
+		Model: p.model,
+		Messages: []LiteLLMChatMessage{
+			{
+				Role:    "system",
+				Content: "You are a professional translator. Translate the given text accurately and naturally.",
+			},
+			{
+				Role:    "user",
+				Content: prompt,
+			},
+		},
+		Temperature: 0.3,
+		MaxTokens:   2048,
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Make HTTP request
+	req, err := http.NewRequest("POST", p.apiURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if p.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+p.apiKey)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("LiteLLM API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("LiteLLM API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var litellmResp LiteLLMChatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&litellmResp); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(litellmResp.Choices) == 0 {
+		return "", fmt.Errorf("no translation returned from LiteLLM")
+	}
+
+	// Extract translated text from response
+	translatedText := strings.TrimSpace(litellmResp.Choices[0].Message.Content)
+	return translatedText, nil
+}
+
+// createTranslationPromptForChat creates a translation prompt for chat-based models
+func createTranslationPromptForChat(text, sourceLang, targetLang string) string {
+	sourceLanguageName := getLanguageName(sourceLang)
+	targetLanguageName := getLanguageName(targetLang)
+
+	if sourceLang == "auto" {
+		return fmt.Sprintf("Translate the following text to %s:\n\n%s", targetLanguageName, text)
+	}
+
+	return fmt.Sprintf("Translate the following text from %s to %s:\n\n%s", sourceLanguageName, targetLanguageName, text)
+}
+
 // getLanguageName converts language code to full language name
 func getLanguageName(code string) string {
 	languageNames := map[string]string{
