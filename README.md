@@ -41,9 +41,19 @@ __Requires Mattermost 5.22 or higher__
 This plugin contains both a server and web app portion.
 
 
+Use `make dist` to build distributions of the plugin that you can upload to a Mattermost server.
+
+Use `make check-style` to check the style.
+
+Use `make localdeploy` to deploy the plugin to your local server. You will need to restart the server to get the changes.
+
+
+----
+
+
+
 ------
 3. 자동 번역 기능 구현 ✅
-요청하신 대로 완전히 새로운 UX로 변경되었습니다:
 
 기존 동작:
 버튼 클릭 → 번역 결과 표시
@@ -84,8 +94,3 @@ Bot Username: autotranslate-bot (기본값)
 Bot Display Name: Auto Translate Bot
 Bot Icon URL: [optional]
 
-Use `make dist` to build distributions of the plugin that you can upload to a Mattermost server.
-
-Use `make check-style` to check the style.
-
-Use `make localdeploy` to deploy the plugin to your local server. You will need to restart the server to get the changes.
