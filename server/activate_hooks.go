@@ -29,9 +29,16 @@ func (p *Plugin) OnActivate() error {
 func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	configuration := p.getConfiguration()
 
-	// Ignore bot messages to prevent infinite loops
+	// Ignore system messages
 	if post.IsSystemMessage() {
 		return
+	}
+
+	// CRITICAL: Ignore messages from this plugin to prevent infinite loops
+	if post.Props != nil {
+		if _, exists := post.Props["from_plugin"]; exists {
+			return
+		}
 	}
 
 	// Get the user who posted the message
@@ -83,31 +90,30 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		sourceLangDisplay = "detected"
 	}
 
-	// Format the translated message with language info
-	botMessage := fmt.Sprintf("**[%s → %s]**\n%s",
-		sourceLangDisplay,
-		userInfo.TargetLanguage,
-		translatedText)
-
 	// Create bot username if not configured
 	botUsername := configuration.BotUsername
 	if botUsername == "" {
 		botUsername = "autotranslate-bot"
 	}
 
-	// Post the translated message in the same location as the original
-	// If original is in a thread, translation goes to the same thread
-	// If original is a root post, translation is also a root post
+	// Post translation as a message with attachment for better visual display
 	translatedPost := &model.Post{
 		ChannelId: post.ChannelId,
 		UserId:    post.UserId,
-		RootId:    post.RootId, // Use the same RootId as original (preserves thread structure)
-		Message:   botMessage,
+		RootId:    post.RootId,
+		Message:   "", // Empty message, content in attachment
 		Props: map[string]interface{}{
-			"from_plugin":             true,
+			"from_plugin":             true, // CRITICAL: Mark as plugin message to prevent loop
 			"override_username":       botUsername,
 			"override_icon_url":       configuration.BotIconURL,
 			"disable_group_highlight": true,
+			"attachments": []*model.SlackAttachment{
+				{
+					Text:    translatedText,
+					Pretext: fmt.Sprintf("🌐 **Translation** [%s → %s]", sourceLangDisplay, userInfo.TargetLanguage),
+					Color:   "#3AA3E3",
+				},
+			},
 		},
 	}
 
