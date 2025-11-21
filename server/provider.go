@@ -286,6 +286,7 @@ func (p *LiteLLMProvider) Translate(text, sourceLang, targetLang string) (string
 	}
 
 	// Prepare request with optimized parameters
+	// Higher limits for local LiteLLM deployment
 	reqBody := LiteLLMChatRequest{
 		Model: p.model,
 		Messages: []LiteLLMChatMessage{
@@ -298,8 +299,8 @@ func (p *LiteLLMProvider) Translate(text, sourceLang, targetLang string) (string
 				Content: userPrompt,
 			},
 		},
-		Temperature: 0.1, // Lower temperature for more consistent output
-		MaxTokens:   512, // Reduced to prevent long responses
+		Temperature: 0.3,  // Slightly higher for more natural translations
+		MaxTokens:   2048, // Higher limit for longer texts
 	}
 
 	jsonData, err := json.Marshal(reqBody)
