@@ -275,23 +275,31 @@ type LiteLLMChatResponse struct {
 // Translate translates text using LiteLLM API
 func (p *LiteLLMProvider) Translate(text, sourceLang, targetLang string) (string, error) {
 	// Create translation prompt
-	prompt := createTranslationPromptForChat(text, sourceLang, targetLang)
+	sourceLanguageName := getLanguageName(sourceLang)
+	targetLanguageName := getLanguageName(targetLang)
 
-	// Prepare request
+	var userPrompt string
+	if sourceLang == "auto" {
+		userPrompt = fmt.Sprintf("Translate to %s:\n\n%s", targetLanguageName, text)
+	} else {
+		userPrompt = fmt.Sprintf("Translate from %s to %s:\n\n%s", sourceLanguageName, targetLanguageName, text)
+	}
+
+	// Prepare request with optimized parameters
 	reqBody := LiteLLMChatRequest{
 		Model: p.model,
 		Messages: []LiteLLMChatMessage{
 			{
 				Role:    "system",
-				Content: "You are a professional translator. Translate the given text accurately and naturally.",
+				Content: "You are a translation system. Output ONLY the translated text without any explanations, notes, or additional commentary.",
 			},
 			{
 				Role:    "user",
-				Content: prompt,
+				Content: userPrompt,
 			},
 		},
-		Temperature: 0.3,
-		MaxTokens:   2048,
+		Temperature: 0.1, // Lower temperature for more consistent output
+		MaxTokens:   512, // Reduced to prevent long responses
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -332,21 +340,13 @@ func (p *LiteLLMProvider) Translate(text, sourceLang, targetLang string) (string
 		return "", fmt.Errorf("no translation returned from LiteLLM")
 	}
 
-	// Extract translated text from response
-	translatedText := strings.TrimSpace(litellmResp.Choices[0].Message.Content)
+	// Extract and clean translated text from response
+	translatedText := litellmResp.Choices[0].Message.Content
+
+	// Clean up common unwanted patterns (reuse cleaning function)
+	translatedText = cleanTranslationOutput(translatedText)
+
 	return translatedText, nil
-}
-
-// createTranslationPromptForChat creates a translation prompt for chat-based models
-func createTranslationPromptForChat(text, sourceLang, targetLang string) string {
-	sourceLanguageName := getLanguageName(sourceLang)
-	targetLanguageName := getLanguageName(targetLang)
-
-	if sourceLang == "auto" {
-		return fmt.Sprintf("Translate the following text to %s:\n\n%s", targetLanguageName, text)
-	}
-
-	return fmt.Sprintf("Translate the following text from %s to %s:\n\n%s", sourceLanguageName, targetLanguageName, text)
 }
 
 // getLanguageName converts language code to full language name
