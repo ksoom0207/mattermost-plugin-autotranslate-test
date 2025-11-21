@@ -112,9 +112,16 @@ func (p *VLLMProvider) Translate(text, sourceLang, targetLang string) (string, e
 	reqBody := VLLMRequest{
 		Model:       p.model,
 		Prompt:      prompt,
-		MaxTokens:   2048,
-		Temperature: 0.1,                                                                 // Low temperature for more deterministic translation
-		Stop:        []string{"\n\nText to translate:", "\n\nNote:", "\n\nExplanation:"}, // Stop sequences to prevent extra text
+		MaxTokens:   512, // Reduced from 2048 to prevent long responses
+		Temperature: 0.1, // Low temperature for more deterministic translation
+		Stop: []string{
+			"\n\n",           // Stop at double newline
+			"\nNote:",        // Stop at explanation attempts
+			"\nExplanation:", // Stop at explanation attempts
+			"\nTranslation:", // Stop if it tries to label
+			"\n\nInput:",     // Stop if it continues pattern
+			"[/INST]",        // Stop at chat template end
+		},
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -155,9 +162,54 @@ func (p *VLLMProvider) Translate(text, sourceLang, targetLang string) (string, e
 		return "", fmt.Errorf("no translation returned from vLLM")
 	}
 
-	// Extract translated text from response
-	translatedText := strings.TrimSpace(vllmResp.Choices[0].Text)
+	// Extract and clean translated text from response
+	translatedText := vllmResp.Choices[0].Text
+
+	// Clean up common unwanted patterns
+	translatedText = cleanTranslationOutput(translatedText)
+
 	return translatedText, nil
+}
+
+// cleanTranslationOutput removes common unwanted patterns from LLM output
+func cleanTranslationOutput(text string) string {
+	// Trim whitespace
+	text = strings.TrimSpace(text)
+
+	// Remove common prefixes that models add
+	unwantedPrefixes := []string{
+		"Translation: ",
+		"Translated text: ",
+		"Here is the translation: ",
+		"The translation is: ",
+		"Output: ",
+		"Answer: ",
+		"Result: ",
+	}
+
+	for _, prefix := range unwantedPrefixes {
+		if strings.HasPrefix(text, prefix) {
+			text = strings.TrimPrefix(text, prefix)
+			text = strings.TrimSpace(text)
+		}
+	}
+
+	// Remove quotes if entire text is quoted
+	if (strings.HasPrefix(text, "\"") && strings.HasSuffix(text, "\"")) ||
+		(strings.HasPrefix(text, "'") && strings.HasSuffix(text, "'")) {
+		text = text[1 : len(text)-1]
+		text = strings.TrimSpace(text)
+	}
+
+	// Remove trailing notes or explanations
+	if idx := strings.Index(text, "\n\nNote:"); idx != -1 {
+		text = text[:idx]
+	}
+	if idx := strings.Index(text, "\n\nExplanation:"); idx != -1 {
+		text = text[:idx]
+	}
+
+	return strings.TrimSpace(text)
 }
 
 // createTranslationPrompt creates a translation prompt for the LLM
@@ -166,34 +218,16 @@ func (p *VLLMProvider) createTranslationPrompt(text, sourceLang, targetLang stri
 	targetLanguageName := getLanguageName(targetLang)
 
 	if sourceLang == "auto" {
-		return fmt.Sprintf(`You are a professional translator. Translate the text to %s.
+		// Simplified prompt for auto-detect mode
+		return fmt.Sprintf(`Translate to %s. Reply with ONLY the translation.
 
-IMPORTANT RULES:
-- Output ONLY the translated text
-- Do NOT add any explanations, notes, or comments
-- Do NOT include phrases like "Here is the translation:" or "Translation:"
-- Preserve the original tone and formatting
-- If the text is already in the target language, output it unchanged
-
-Text to translate:
-%s
-
-Translated text:`, targetLanguageName, text)
+%s`, targetLanguageName, text)
 	}
 
-	return fmt.Sprintf(`You are a professional translator. Translate from %s to %s.
+	// Ultra-concise prompt to minimize extra output
+	return fmt.Sprintf(`Translate %s to %s. Reply with ONLY the translation.
 
-IMPORTANT RULES:
-- Output ONLY the translated text
-- Do NOT add any explanations, notes, or comments
-- Do NOT include phrases like "Here is the translation:" or "Translation:"
-- Preserve the original tone and formatting
-- If the text is already in the target language, output it unchanged
-
-Text to translate:
-%s
-
-Translated text:`, sourceLanguageName, targetLanguageName, text)
+%s`, sourceLanguageName, targetLanguageName, text)
 }
 
 // LiteLLMProvider implements TranslationProvider for LiteLLM (OpenAI-compatible API)
