@@ -95,11 +95,13 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 		botUsername = "autotranslate-bot"
 	}
 
-	// Post the translated message as a reply in the same channel
+	// Post the translated message in the same location as the original
+	// If original is in a thread, translation goes to the same thread
+	// If original is a root post, translation is also a root post
 	translatedPost := &model.Post{
 		ChannelId: post.ChannelId,
 		UserId:    post.UserId,
-		RootId:    post.Id, // Make it a thread reply to the original message
+		RootId:    post.RootId, // Use the same RootId as original (preserves thread structure)
 		Message:   botMessage,
 		Props: map[string]interface{}{
 			"from_plugin":             true,

@@ -89,10 +89,11 @@ func (p *VLLMProvider) GetName() string {
 
 // VLLMRequest represents the request body for vLLM API
 type VLLMRequest struct {
-	Model       string  `json:"model"`
-	Prompt      string  `json:"prompt"`
-	MaxTokens   int     `json:"max_tokens,omitempty"`
-	Temperature float64 `json:"temperature,omitempty"`
+	Model       string   `json:"model"`
+	Prompt      string   `json:"prompt"`
+	MaxTokens   int      `json:"max_tokens,omitempty"`
+	Temperature float64  `json:"temperature,omitempty"`
+	Stop        []string `json:"stop,omitempty"`
 }
 
 // VLLMResponse represents the response from vLLM API
@@ -107,12 +108,13 @@ func (p *VLLMProvider) Translate(text, sourceLang, targetLang string) (string, e
 	// Create translation prompt
 	prompt := p.createTranslationPrompt(text, sourceLang, targetLang)
 
-	// Prepare request
+	// Prepare request with optimized parameters for translation
 	reqBody := VLLMRequest{
 		Model:       p.model,
 		Prompt:      prompt,
 		MaxTokens:   2048,
-		Temperature: 0.3,
+		Temperature: 0.1,                                                                 // Low temperature for more deterministic translation
+		Stop:        []string{"\n\nText to translate:", "\n\nNote:", "\n\nExplanation:"}, // Stop sequences to prevent extra text
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -164,10 +166,34 @@ func (p *VLLMProvider) createTranslationPrompt(text, sourceLang, targetLang stri
 	targetLanguageName := getLanguageName(targetLang)
 
 	if sourceLang == "auto" {
-		return fmt.Sprintf("Translate the following text to %s. Only provide the translation, nothing else.\n\nText: %s\n\nTranslation:", targetLanguageName, text)
+		return fmt.Sprintf(`You are a professional translator. Translate the text to %s.
+
+IMPORTANT RULES:
+- Output ONLY the translated text
+- Do NOT add any explanations, notes, or comments
+- Do NOT include phrases like "Here is the translation:" or "Translation:"
+- Preserve the original tone and formatting
+- If the text is already in the target language, output it unchanged
+
+Text to translate:
+%s
+
+Translated text:`, targetLanguageName, text)
 	}
 
-	return fmt.Sprintf("Translate the following text from %s to %s. Only provide the translation, nothing else.\n\nText: %s\n\nTranslation:", sourceLanguageName, targetLanguageName, text)
+	return fmt.Sprintf(`You are a professional translator. Translate from %s to %s.
+
+IMPORTANT RULES:
+- Output ONLY the translated text
+- Do NOT add any explanations, notes, or comments
+- Do NOT include phrases like "Here is the translation:" or "Translation:"
+- Preserve the original tone and formatting
+- If the text is already in the target language, output it unchanged
+
+Text to translate:
+%s
+
+Translated text:`, sourceLanguageName, targetLanguageName, text)
 }
 
 // LiteLLMProvider implements TranslationProvider for LiteLLM (OpenAI-compatible API)
