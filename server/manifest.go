@@ -50,6 +50,10 @@ const manifestStr = `
           {
             "display_name": "vLLM",
             "value": "vllm"
+          },
+          {
+            "display_name": "LiteLLM",
+            "value": "litellm"
           }
         ]
       },
@@ -99,6 +103,54 @@ const manifestStr = `
         "type": "text",
         "help_text": "The model name to use for translation (e.g., meta-llama/Llama-2-7b-chat-hf). (Required for vLLM provider)",
         "placeholder": "meta-llama/Llama-2-7b-chat-hf",
+        "default": null
+      },
+      {
+        "key": "LiteLLMApiURL",
+        "display_name": "LiteLLM API URL:",
+        "type": "text",
+        "help_text": "The LiteLLM API endpoint URL (e.g., http://localhost:4000/chat/completions). (Required for LiteLLM provider)",
+        "placeholder": "http://localhost:4000/chat/completions",
+        "default": null
+      },
+      {
+        "key": "LiteLLMApiKey",
+        "display_name": "LiteLLM API Key:",
+        "type": "text",
+        "help_text": "The API key for LiteLLM endpoint (optional, leave empty if not required).",
+        "placeholder": "Optional",
+        "default": null
+      },
+      {
+        "key": "LiteLLMModel",
+        "display_name": "LiteLLM Model:",
+        "type": "text",
+        "help_text": "The model name to use for translation (e.g., gpt-4, claude-2, etc.). (Required for LiteLLM provider)",
+        "placeholder": "gpt-4",
+        "default": null
+      },
+      {
+        "key": "BotUsername",
+        "display_name": "Bot Username:",
+        "type": "text",
+        "help_text": "The username for the bot that posts auto-translated messages.",
+        "placeholder": "",
+        "default": "autotranslate-bot"
+      },
+      {
+        "key": "BotDisplayName",
+        "display_name": "Bot Display Name:",
+        "type": "text",
+        "help_text": "The display name for the translation bot.",
+        "placeholder": "",
+        "default": "Auto Translate Bot"
+      },
+      {
+        "key": "BotIconURL",
+        "display_name": "Bot Icon URL:",
+        "type": "text",
+        "help_text": "The icon URL for the translation bot (optional).",
+        "placeholder": "https://example.com/bot-icon.png",
         "default": null
       }
     ]
