@@ -73,16 +73,16 @@ func (p *Plugin) getGo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the configured translation provider
-	provider, err := p.getTranslationProvider()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to initialize translation provider: %s", err.Error()), http.StatusInternalServerError)
+	provider, providerErr := p.getTranslationProvider()
+	if providerErr != nil {
+		http.Error(w, fmt.Sprintf("Failed to initialize translation provider: %s", providerErr.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	// Perform translation using the provider
-	translatedText, err := provider.Translate(post.Message, source, target)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Translation failed: %s", err.Error()), http.StatusBadRequest)
+	translatedText, translateErr := provider.Translate(post.Message, source, target)
+	if translateErr != nil {
+		http.Error(w, fmt.Sprintf("Translation failed: %s", translateErr.Error()), http.StatusBadRequest)
 		return
 	}
 

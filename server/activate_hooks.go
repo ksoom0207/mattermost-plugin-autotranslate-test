@@ -59,16 +59,16 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	}
 
 	// Get translation provider
-	provider, err := p.getTranslationProvider()
-	if err != nil {
-		p.API.LogError("Failed to get translation provider", "error", err.Error())
+	provider, providerErr := p.getTranslationProvider()
+	if providerErr != nil {
+		p.API.LogError("Failed to get translation provider", "error", providerErr.Error())
 		return
 	}
 
 	// Perform translation
-	translatedText, err := provider.Translate(post.Message, userInfo.SourceLanguage, userInfo.TargetLanguage)
-	if err != nil {
-		p.API.LogError("Failed to translate message", "error", err.Error())
+	translatedText, translateErr := provider.Translate(post.Message, userInfo.SourceLanguage, userInfo.TargetLanguage)
+	if translateErr != nil {
+		p.API.LogError("Failed to translate message", "error", translateErr.Error())
 		return
 	}
 
