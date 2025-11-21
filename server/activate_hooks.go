@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +26,7 @@ func (p *Plugin) OnActivate() error {
 }
 
 // MessageHasBeenPosted is invoked after a message has been posted.
-func (p *Plugin) MessageHasBeenPosted(c *model.Context, post *model.Post) {
+func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	configuration := p.getConfiguration()
 
 	// Ignore bot messages to prevent infinite loops
