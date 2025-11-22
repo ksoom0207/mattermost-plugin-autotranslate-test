@@ -217,17 +217,24 @@ func (p *VLLMProvider) createTranslationPrompt(text, sourceLang, targetLang stri
 	sourceLanguageName := getLanguageName(sourceLang)
 	targetLanguageName := getLanguageName(targetLang)
 
+	// Add language-specific clarifications to prevent confusion
+	targetClarification := getLanguageClarification(targetLang)
+	sourceClarification := ""
+	if sourceLang != "auto" {
+		sourceClarification = getLanguageClarification(sourceLang)
+	}
+
 	if sourceLang == "auto" {
 		// Simplified prompt for auto-detect mode
-		return fmt.Sprintf(`Translate to %s. Reply with ONLY the translation.
+		return fmt.Sprintf(`Translate to %s%s. Reply with ONLY the translation.
 
-%s`, targetLanguageName, text)
+%s`, targetLanguageName, targetClarification, text)
 	}
 
 	// Ultra-concise prompt to minimize extra output
-	return fmt.Sprintf(`Translate %s to %s. Reply with ONLY the translation.
+	return fmt.Sprintf(`Translate from %s%s to %s%s. Reply with ONLY the translation.
 
-%s`, sourceLanguageName, targetLanguageName, text)
+%s`, sourceLanguageName, sourceClarification, targetLanguageName, targetClarification, text)
 }
 
 // LiteLLMProvider implements TranslationProvider for LiteLLM (OpenAI-compatible API)
@@ -278,11 +285,18 @@ func (p *LiteLLMProvider) Translate(text, sourceLang, targetLang string) (string
 	sourceLanguageName := getLanguageName(sourceLang)
 	targetLanguageName := getLanguageName(targetLang)
 
+	// Add language-specific clarifications to prevent confusion
+	targetClarification := getLanguageClarification(targetLang)
+	sourceClarification := ""
+	if sourceLang != "auto" {
+		sourceClarification = getLanguageClarification(sourceLang)
+	}
+
 	var userPrompt string
 	if sourceLang == "auto" {
-		userPrompt = fmt.Sprintf("Translate to %s:\n\n%s", targetLanguageName, text)
+		userPrompt = fmt.Sprintf("Translate to %s%s:\n\n%s", targetLanguageName, targetClarification, text)
 	} else {
-		userPrompt = fmt.Sprintf("Translate from %s to %s:\n\n%s", sourceLanguageName, targetLanguageName, text)
+		userPrompt = fmt.Sprintf("Translate from %s%s to %s%s:\n\n%s", sourceLanguageName, sourceClarification, targetLanguageName, targetClarification, text)
 	}
 
 	// Prepare request with optimized parameters
@@ -348,6 +362,27 @@ func (p *LiteLLMProvider) Translate(text, sourceLang, targetLang string) (string
 	translatedText = cleanTranslationOutput(translatedText)
 
 	return translatedText, nil
+}
+
+// getLanguageClarification provides additional context for commonly confused languages
+func getLanguageClarification(code string) string {
+	clarifications := map[string]string{
+		"ko":    " (한국어, using Hangul script, NOT Chinese)",
+		"ja":    " (日本語, using Hiragana/Katakana/Kanji, NOT Chinese or Korean)",
+		"zh":    " (中文简体, Simplified Chinese characters)",
+		"zh-TW": " (中文繁體, Traditional Chinese characters)",
+		"en":    " (English)",
+		"ar":    " (العربية, Arabic script)",
+		"he":    " (עברית, Hebrew script)",
+		"hi":    " (हिन्दी, Devanagari script)",
+		"ru":    " (Русский, Cyrillic script)",
+		"th":    " (ไทย, Thai script)",
+	}
+
+	if clarification, ok := clarifications[code]; ok {
+		return clarification
+	}
+	return ""
 }
 
 // getLanguageName converts language code to full language name
